@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kodr — AI coding agent</title>
+<meta name="description" content="Kodr is an AI coding agent for your terminal. Bring any model: Claude, GPT, Gemini, or local models via Ollama.">
+<meta property="og:title" content="Kodr — AI coding agent for your terminal">
+<meta property="og:description" content="Bring any model. Your keys, your machine, your code.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2311151c'/><path d='M9 11l6 5-6 5' stroke='%237ee2a8' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/><path d='M17 22h7' stroke='%237ee2a8' stroke-width='2.6' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f8fa; --bg2:#ffffff; --fg:#11151c; --muted:#5b6472; --line:#e3e6eb;
+  --accent:#0f9d63; --accent-ink:#ffffff; --term:#0d1117; --term-fg:#d6dde6; --term-dim:#7d8896;
+  --t-green:#7ee2a8; --t-blue:#8cc4ff; --t-yellow:#f2cc60; --t-pink:#f39ac7;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0e13; --bg2:#11151c; --fg:#e8edf3; --muted:#9aa4b2; --line:#1f2630;
+    --accent:#7ee2a8; --accent-ink:#0b0e13; --term:#0d1117;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0e13; --bg2:#11151c; --fg:#e8edf3; --muted:#9aa4b2; --line:#1f2630;
+  --accent:#7ee2a8; --accent-ink:#0b0e13; --term:#0d1117;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+@media(min-width:720px){.wrap{padding:0 28px}}
+
+/* nav */
+nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-weight:700;font-size:18px;text-decoration:none}
+.logo svg{width:26px;height:26px}
+.navlinks{display:flex;gap:20px;align-items:center;font-size:14px}
+.navlinks a{text-decoration:none;color:var(--muted)}
+.navlinks a:hover{color:var(--fg)}
+.navlinks .hide-sm{display:none}
+@media(min-width:640px){.navlinks .hide-sm{display:inline}}
+.theme-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:15px}
+
+/* hero */
+.hero{padding:72px 0 40px;text-align:center}
+.badge{display:inline-block;font-family:var(--mono);font-size:12px;padding:5px 12px;border:1px solid var(--line);border-radius:999px;color:var(--muted);margin-bottom:22px}
+.badge b{color:var(--accent);font-weight:600}
+h1{font-size:clamp(34px,6vw,60px);line-height:1.08;letter-spacing:-.03em;margin:0 0 18px;font-weight:700}
+h1 .hl{font-family:var(--mono);color:var(--accent);font-weight:700}
+.sub{font-size:clamp(16px,2.2vw,19px);color:var(--muted);max-width:640px;margin:0 auto 32px}
+.install{display:inline-flex;align-items:center;gap:12px;max-width:100%;background:var(--term);color:var(--term-fg);font-family:var(--mono);font-size:15px;padding:12px 12px 12px 18px;border-radius:12px;border:1px solid #1f2630}
+.install code{white-space:nowrap;overflow-x:auto}
+.install .p{color:var(--t-green);user-select:none}
+.copy{background:#1b222c;border:1px solid #2a3340;color:var(--term-fg);font-family:var(--mono);font-size:12px;padding:6px 10px;border-radius:8px;cursor:pointer;flex-shrink:0}
+.copy:hover{background:#232c38}
+.tabs{display:flex;gap:6px;justify-content:center;margin:0 0 12px;font-family:var(--mono);font-size:13px}
+.tabs button{background:none;border:1px solid transparent;color:var(--muted);padding:4px 10px;border-radius:8px;cursor:pointer;font:inherit}
+.tabs button[aria-selected="true"]{border-color:var(--line);color:var(--fg);background:var(--bg2)}
+.cta{margin-top:26px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-block;text-decoration:none;font-weight:600;font-size:15px;padding:11px 20px;border-radius:10px;border:1px solid var(--line)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+/* terminal demo */
+.demo{margin:48px auto 0;max-width:860px;background:var(--term);border-radius:14px;border:1px solid #1f2630;box-shadow:0 30px 80px -30px rgba(0,0,0,.45);overflow:hidden;text-align:left}
+.demo .bar{display:flex;align-items:center;gap:7px;padding:12px 14px;border-bottom:1px solid #1a212b}
+.demo .dot{width:11px;height:11px;border-radius:50%;background:#2a3340}
+.demo .bar span.t{margin-left:10px;font-family:var(--mono);font-size:12px;color:var(--term-dim)}
+.demo pre{margin:0;padding:18px 20px 22px;font-family:var(--mono);font-size:13.5px;line-height:1.7;color:var(--term-fg);min-height:330px;white-space:pre-wrap;word-break:break-word}
+.g{color:var(--t-green)}.b{color:var(--t-blue)}.y{color:var(--t-yellow)}.k{color:var(--t-pink)}.d{color:var(--term-dim)}
+.cursor{display:inline-block;width:8px;height:1.1em;background:var(--t-green);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media(max-width:520px){.demo pre{font-size:12px;padding:14px}}
+
+/* sections */
+section{padding:72px 0;border-top:1px solid var(--line)}
+.eyebrow{font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:8px}
+h2{font-size:clamp(26px,4vw,38px);letter-spacing:-.02em;line-height:1.15;margin:0 0 14px}
+.lead{color:var(--muted);max-width:620px;margin:0 0 36px;font-size:17px}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:640px){.grid{grid-template-columns:1fr 1fr}}
+@media(min-width:960px){.grid.three{grid-template-columns:1fr 1fr 1fr}}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:22px}
+.card .ic{font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:10px}
+.card h3{margin:0 0 6px;font-size:17px}
+.card p{margin:0;color:var(--muted);font-size:15px}
+
+.models{display:flex;flex-wrap:wrap;gap:10px}
+.chip{font-family:var(--mono);font-size:13.5px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--bg2)}
+.chip.more{color:var(--muted)}
+
+.steps{counter-reset:s;display:grid;gap:16px}
+@media(min-width:800px){.steps{grid-template-columns:repeat(3,1fr)}}
+.step{counter-increment:s;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:22px}
+.step::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);color:var(--accent);font-size:13px;display:block;margin-bottom:10px}
+.step h3{margin:0 0 6px;font-size:17px}
+.step p{margin:0 0 12px;color:var(--muted);font-size:15px}
+.step code{display:block;font-family:var(--mono);font-size:12.5px;background:var(--term);color:var(--term-fg);padding:10px 12px;border-radius:8px;overflow-x:auto;white-space:pre}
+
+details{border:1px solid var(--line);border-radius:12px;background:var(--bg2);padding:16px 20px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:600;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";float:right;font-family:var(--mono);color:var(--muted)}
+details[open] summary::after{content:"–"}
+details p{color:var(--muted);margin:10px 0 0}
+
+footer{border-top:1px solid var(--line);padding:32px 0 48px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+footer a{text-decoration:none}
+footer a:hover{color:var(--fg)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#11151c"/><path d="M9 11l6 5-6 5" stroke="#7ee2a8" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 22h7" stroke="#7ee2a8" stroke-width="2.6" stroke-linecap="round"/></svg>
+      kodr
+    </a>
+    <div class="navlinks">
+      <a href="#features" class="hide-sm">Features</a>
+      <a href="#models" class="hide-sm">Models</a>
+      <a href="#start">Get started</a>
+      <a href="#faq" class="hide-sm">FAQ</a>
+      <button class="theme-btn" id="theme" aria-label="Toggle theme">◐</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="badge"><b>●</b> Early access · free to use</div>
+    <h1>The AI coding agent<br>for <span class="hl">any model</span>.</h1>
+    <p class="sub">Kodr lives in your terminal. It reads your code, edits files, runs commands and fixes what breaks, with Claude, GPT, Gemini or a local model. Your keys, your machine, your code.</p>
+
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-cmd="pipx install kodr">pipx</button>
+      <button role="tab" aria-selected="false" data-cmd="pip install kodr">pip</button>
+      <button role="tab" aria-selected="false" data-cmd="uv tool install kodr">uv</button>
+    </div>
+    <div class="install">
+      <code><span class="p">$ </span><span id="cmd">pipx install kodr</span></code>
+      <button class="copy" id="copy">copy</button>
+    </div>
+
+    <div class="cta">
+      <a class="btn primary" href="#start">Get started</a>
+      <a class="btn" href="https://github.com/saudalam15/kodr">GitHub</a>
+    </div>
+
+    <div class="demo" aria-label="Kodr terminal demo">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="t">~/projects/api — kodr</span></div>
+      <pre id="term"></pre>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">// features</div>
+    <h2>A real agent, not autocomplete.</h2>
+    <p class="lead">Kodr plans, uses tools and checks its own work, and asks before it changes anything.</p>
+    <div class="grid three">
+      <div class="card"><div class="ic">[any-model]</div><h3>Bring any LLM</h3><p>Claude, GPT, Gemini, DeepSeek, Mistral, or anything OpenAI-compatible. Switch models mid-session with one command.</p></div>
+      <div class="card"><div class="ic">[local]</div><h3>Runs fully local</h3><p>Point it at Ollama or LM Studio and nothing leaves your laptop. No account, no telemetry.</p></div>
+      <div class="card"><div class="ic">[tools]</div><h3>Reads, edits, runs</h3><p>Searches your codebase, makes precise diff-based edits, runs tests and shell commands, and uses git.</p></div>
+      <div class="card"><div class="ic">[safe]</div><h3>You stay in control</h3><p>Every file write and command asks first. Set rules per project: allow, ask or deny.</p></div>
+      <div class="card"><div class="ic">[cost]</div><h3>See what you spend</h3><p>Live token and cost tracking per model and per session, so cheap models handle the easy work.</p></div>
+      <div class="card"><div class="ic">[context]</div><h3>Knows your project</h3><p>Drop an <code>AGENTS.md</code> in your repo with conventions and commands. Sessions resume where you left off.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="models">
+  <div class="wrap">
+    <div class="eyebrow">// models</div>
+    <h2>One agent. Every provider.</h2>
+    <p class="lead">Use your own API keys, a gateway like OpenRouter, or a model running on your machine.</p>
+    <div class="models">
+      <span class="chip">Anthropic Claude</span>
+      <span class="chip">OpenAI GPT</span>
+      <span class="chip">Google Gemini</span>
+      <span class="chip">AWS Bedrock</span>
+      <span class="chip">Azure OpenAI</span>
+      <span class="chip">OpenRouter</span>
+      <span class="chip">DeepSeek</span>
+      <span class="chip">Mistral</span>
+      <span class="chip">Groq</span>
+      <span class="chip">Ollama</span>
+      <span class="chip">LM Studio</span>
+      <span class="chip more">+ any OpenAI-compatible API</span>
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <div class="eyebrow">// get started</div>
+    <h2>Up and running in a minute.</h2>
+    <p class="lead">Python 3.10 or newer. Works on macOS, Linux and Windows (WSL).</p>
+    <div class="steps">
+      <div class="step"><h3>Install</h3><p>One command, isolated from your system Python.</p><code>pipx install kodr</code></div>
+      <div class="step"><h3>Add a model</h3><p>Use a key you already have, or go local for free.</p><code>export ANTHROPIC_API_KEY=...
+# or: ollama pull qwen2.5-coder</code></div>
+      <div class="step"><h3>Start coding</h3><p>Open any project and tell it what you need.</p><code>cd my-project
+kodr</code></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="eyebrow">// faq</div>
+    <h2>Questions</h2>
+    <details><summary>Is Kodr free?</summary><p>Yes. Kodr itself is free to use. You pay your model provider directly for usage, or nothing at all with a local model.</p></details>
+    <details><summary>Does my code get sent anywhere?</summary><p>Only to the model provider you choose. Kodr has no servers and no telemetry. With a local model, nothing leaves your machine.</p></details>
+    <details><summary>Which model should I use?</summary><p>For hard multi-file work, a frontier model like Claude or GPT. For quick edits, a cheaper or local model. You can switch at any time with <code>/model</code>.</p></details>
+    <details><summary>Can it break my project?</summary><p>Kodr asks before every edit and command by default, shows diffs before writing, and works well alongside git, so every change is reviewable and reversible.</p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© <span id="yr"></span> Kodr. All rights reserved.</span>
+    <span><a href="https://github.com/saudalam15/kodr">GitHub</a></span>
+  </div>
+</footer>
+
+<script>
+// year
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+// theme toggle (per-viewer convenience only)
+(function(){
+  const root=document.documentElement, btn=document.getElementById('theme');
+  try{const t=localStorage.getItem('kodr-theme'); if(t) root.dataset.theme=t;}catch(e){}
+  btn.addEventListener('click',()=>{
+    const dark = root.dataset.theme ? root.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try{localStorage.setItem('kodr-theme',root.dataset.theme);}catch(e){}
+  });
+})();
+
+// install tabs + copy
+(function(){
+  const cmd=document.getElementById('cmd'), copy=document.getElementById('copy');
+  document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected','false'));
+    b.setAttribute('aria-selected','true'); cmd.textContent=b.dataset.cmd;
+  }));
+  copy.addEventListener('click',async()=>{
+    try{await navigator.clipboard.writeText(cmd.textContent); copy.textContent='copied';}
+    catch(e){copy.textContent='select & copy';}
+    setTimeout(()=>copy.textContent='copy',1400);
+  });
+})();
+
+// terminal demo
+(function(){
+  const el=document.getElementById('term');
+  const script=[
+    ['<span class="g">❯</span> ', 'the /users endpoint returns 500 when email is missing, fix it and add a test', 18],
+    ['\n\n<span class="d">model: claude · ctx 4.2k tokens</span>\n\n',null,0],
+    ['<span class="b">● search</span> <span class="d">"def create_user" in src/</span>\n',null,0],
+    ['<span class="b">● read</span>   <span class="d">src/api/users.py (88 lines)</span>\n',null,0],
+    ['\nThe handler reads <span class="y">payload["email"]</span> without checking it exists.\nI\'ll validate it and return a 422 instead.\n\n',null,0],
+    ['<span class="k">● edit</span>   <span class="d">src/api/users.py</span>\n',null,0],
+    ['  <span class="d">41</span> <span class="k">-    email = payload["email"]</span>\n  <span class="d">41</span> <span class="g">+    email = payload.get("email")</span>\n  <span class="d">42</span> <span class="g">+    if not email:</span>\n  <span class="d">43</span> <span class="g">+        raise HTTPException(422, "email is required")</span>\n',null,0],
+    ['  <span class="y">allow this edit? [y/n/always]</span> y\n\n',null,0],
+    ['<span class="k">● write</span>  <span class="d">tests/test_users.py  +14 lines</span>\n',null,0],
+    ['<span class="b">● run</span>    <span class="d">pytest tests/test_users.py -q</span>\n',null,0],
+    ['  <span class="g">6 passed</span> <span class="d">in 0.41s</span>\n\n',null,0],
+    ['<span class="g">✓</span> Fixed. Missing email now returns 422, covered by a new test.\n<span class="d">  cost $0.004 · 3 files touched</span>\n\n<span class="g">❯</span> ',null,0],
+  ];
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let html='';
+  function render(extra){el.innerHTML=html+(extra||'')+'<span class="cursor"></span>';}
+  async function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+  async function run(){
+    html='';
+    for(const [pre,typed,speed] of script){
+      html+=pre;
+      if(typed){
+        if(reduce){html+=typed;render();}
+        else{let s='';for(const ch of typed){s+=ch;render(s);await sleep(speed);} html+=typed;}
+        await sleep(500);
+      }else{render(); await sleep(reduce?0:650);}
+    }
+    if(!reduce){await sleep(6000); run();}
+  }
+  run();
+})();
+</script>
+</body>
+</html>
